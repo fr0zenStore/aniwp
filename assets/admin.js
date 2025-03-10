@@ -24,16 +24,7 @@ jQuery(document).ready(function($) {
                     const data = response.data;
                     $('#title').val(data.title.romaji || data.title.english);
                     wp.data.dispatch('core/editor').editPost({ content: data.description });
-
-                    // Aggiungi i generi come tassonomia
-                    if (data.genres) {
-                        data.genres.forEach(genre => {
-                            const term = genre.replace(/\s+/g, '-').toLowerCase();
-                            wp.data.dispatch('core/editor').editPost({ meta: { [`genre_${post_type}`]: term } });
-                        });
-                    }
-
-                    alert('Dati importati con successo!');
+                    alert('Dati importati con successo e salvati nei campi personalizzati!');
                 } else {
                     alert('Errore: ' + response.data.message);
                 }
