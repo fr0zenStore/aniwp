@@ -2,7 +2,7 @@
 /*
 Plugin Name: AniWP
 Description: Genera automaticamente CPT Anime e Movie da AniList API.
-Version: 1.2
+Version: 1.3
 Author: fr0zen
 */
 
@@ -83,12 +83,31 @@ function aniwp_save_meta($post_id) {
 add_action('wp_ajax_anilist_fetch', 'aniwp_fetch_data');
 function aniwp_fetch_data() {
     check_ajax_referer('anilist_nonce', 'nonce');
-    if (empty($_POST['id']) || empty($_POST['type'])) wp_send_json_error(['message' => 'ID o tipo non valido']);
+    if (empty($_POST['id']) || empty($_POST['type']) || empty($_POST['post_id'])) {
+        wp_send_json_error(['message' => 'ID, tipo o post ID non valido']);
+    }
+
+    $post_id = intval($_POST['post_id']);
+    $type = sanitize_text_field($_POST['type']);
+    $id = intval($_POST['id']);
 
     require_once plugin_dir_path(__FILE__) . 'includes/anilist-api.php';
-    $data = aniwp_get_data(intval($_POST['id']), sanitize_text_field($_POST['type']));
+    $data = aniwp_get_data($id, $type);
 
     if (!$data) wp_send_json_error(['message' => 'Errore durante il recupero dati']);
+
+    // Aggiorna i Custom Fields
+    update_post_meta($post_id, '_anilist_title_romaji', $data['title']['romaji']);
+    update_post_meta($post_id, '_anilist_title_english', $data['title']['english']);
+    update_post_meta($post_id, '_anilist_title_native', $data['title']['native']);
+    update_post_meta($post_id, '_anilist_description', wp_kses_post($data['description']));
+    update_post_meta($post_id, '_anilist_episodes', intval($data['episodes']));
+    update_post_meta($post_id, '_anilist_duration', intval($data['duration']));
+    update_post_meta($post_id, '_anilist_status', sanitize_text_field($data['status']));
+    update_post_meta($post_id, '_anilist_format', sanitize_text_field($data['format']));
+    update_post_meta($post_id, '_anilist_score', intval($data['averageScore']));
+    update_post_meta($post_id, '_anilist_studio', sanitize_text_field($data['studios']['nodes'][0]['name']));
+    update_post_meta($post_id, '_anilist_cover_image', esc_url($data['coverImage']['large']));
 
     wp_send_json_success(['data' => $data]);
 }
